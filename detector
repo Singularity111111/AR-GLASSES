@@ -1,0 +1,54 @@
+# detector.py
+# ------------------------
+# 阶段3：YOLOv8 物体识别模块
+# ------------------------
+
+# 1️⃣ 导入库
+# pip install ultralytics  # 如果还没安装 YOLOv8，需要先安装
+from ultralytics import YOLO  # YOLOv8 模型类，用于加载和推理
+import cv2                     # OpenCV，用于图像处理
+import numpy as np             # Numpy，用于数组处理（可选）
+
+# ------------------------
+# 2️⃣ 初始化 YOLOv8 模型
+# ------------------------
+# "yolov8n.pt" 是 YOLOv8 Nano 预训练模型文件
+# ultralytics 会自动下载模型
+model = YOLO("yolov8n.pt")
+
+# ------------------------
+# 3️⃣ 定义 detect_objects 函数
+# ------------------------
+def detect_objects(frame):
+    """
+    功能：识别图像中的物品
+    输入：
+        frame : OpenCV BGR 图像（numpy 数组）
+    输出：
+        detected_objects : list，识别到的物品名称
+    """
+    detected_objects = []  # 初始化空列表，存储识别结果
+
+    # ------------------------
+    # 3a. BGR -> RGB 转换
+    # ------------------------
+    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # OpenCV 默认 BGR，需要转换为 RGB
+
+    # ------------------------
+    # 3b. 模型推理
+    # ------------------------
+    results = model(rgb_frame)  # 调用 YOLOv8 模型进行预测，返回结果列表
+
+    # ------------------------
+    # 3c. 遍历结果，提取物品名称
+    # ------------------------
+    for result in results:  # 遍历每一帧的检测结果
+        for box in result.boxes:  # 每个检测框
+            class_id = int(box.cls[0])           # 获取类别 ID
+            class_name = result.names[class_id]  # 根据 ID 查找类别名称
+            detected_objects.append(class_name)  # 添加到检测结果列表
+
+    # ------------------------
+    # 3d. 返回识别结果
+    # ------------------------
+    return detected_objects  # 返回列表
