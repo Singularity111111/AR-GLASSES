@@ -1,0 +1,106 @@
+# main_full.py
+# ------------------------
+# AR 多模态助手 Demo 完整答案
+# ------------------------
+
+import cv2                       # OpenCV库，用于摄像头操作和显示
+from hud import HUD              # HUD 模块
+from interaction import start_voice_thread, get_user_command  # 语音模块
+from ultralytics import YOLO     # YOLOv8 模型
+from gtts import gTTS            # 文本转语音
+import os                        # 系统操作
+import threading                  # 多线程
+import time                       # 时间控制
+
+# -----------------------------
+# 初始化 HUD（阶段1 + 阶段2）
+# -----------------------------
+hud = HUD(font_path="msyh.ttc", font_size=32, max_messages=5)
+# 添加初始消息
+hud.add_message("Hello AR")
+
+# -----------------------------
+# 启动语音监听线程（阶段4）
+# -----------------------------
+start_voice_thread()
+
+# -----------------------------
+# 初始化 YOLOv8 模型（阶段3）
+# -----------------------------
+yolo_model = YOLO("yolov8n.pt")
+
+# -----------------------------
+# 打开摄像头
+# -----------------------------
+cap = cv2.VideoCapture(0)
+if not cap.isOpened():
+    print("无法打开摄像头")
+    exit()
+
+# -----------------------------
+# 主循环
+# -----------------------------
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        print("无法读取摄像头画面")
+        break
+
+    # -------------------------
+    # 获取语音指令（阶段4）
+    # -------------------------
+    command = get_user_command()
+
+    # -------------------------
+    # 物体识别逻辑（阶段3）
+    # -------------------------
+    if command is not None and "检测" in command:
+        results = yolo_model(frame)  # YOLOv8检测
+        detected_objects = []
+        for r in results:
+            names = [r.names[int(c)] for c in r.boxes.cls]  # 获取类别名
+            detected_objects.extend(names)
+
+        # 构造 HUD 消息
+        if detected_objects:
+            msg = "检测到: " + ", ".join(detected_objects)
+        else:
+            msg = "未检测到物体"
+
+        # 添加到 HUD
+        hud.add_message(msg)
+
+        # -------------------------
+        # TTS 播报检测结果（阶段4）
+        # -------------------------
+        tts = gTTS(text=msg, lang="zh")
+        filename = "tts.mp3"
+        tts.save(filename)
+        os.system(f'start {filename}')  # Windows 播放
+        time.sleep(0.5)
+        os.remove(filename)
+
+    # -------------------------
+    # HUD 绘制历史消息（阶段1+2）
+    # -------------------------
+    frame = hud.draw_hud(frame)
+
+    # -------------------------
+    # 显示画面
+    # -------------------------
+    cv2.imshow("AR 多模态助手", frame)
+
+    # -------------------------
+    # 键盘操作模拟（阶段4）
+    # -------------------------
+    key = cv2.waitKey(1) & 0xFF
+    if key == ord('q'):       # Q键退出
+        break
+    elif key == ord('a'):     # A键模拟“detect”指令
+        command = "detect"
+
+# -----------------------------
+# 释放资源
+# -----------------------------
+cap.release()
+cv2.destroyAllWindows()
