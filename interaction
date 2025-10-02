@@ -1,0 +1,51 @@
+# interaction.py
+# ------------------------
+# 阶段4：用户交互模块（语音 + 按键）
+# ------------------------
+
+import threading
+import queue
+import speech_recognition as sr
+
+# 创建全局队列，用于存储语音指令
+command_queue = queue.Queue()
+
+def voice_listener(queue, language="zh-CN"):
+    """
+    功能：持续监听麦克风，将语音转换为文本放入队列
+    参数：
+        queue: 用于传递语音文本的队列
+        language: 识别语言，zh-CN 中文
+    """
+    recognizer = sr.Recognizer()
+    microphone = sr.Microphone()
+
+    while True:
+        with microphone as source:
+            print("请说话...")
+            audio = recognizer.listen(source, timeout=15, phrase_time_limit=15)  # 捕获音频
+        try:
+            text = recognizer.recognize_google(audio, language=language)
+            print("识别内容:", text)
+            queue.put(text)  # 放入队列
+        except Exception as e:
+            print("语音识别失败:", e)
+
+def start_voice_thread():
+    """
+    功能：启动后台语音监听线程
+    """
+    listener_thread = threading.Thread(target=voice_listener, args=(command_queue,), daemon=True)
+    listener_thread.start()
+
+def get_user_command():
+    """
+    功能：获取用户指令
+    返回值：字符串，用户命令
+    逻辑：
+        - 如果队列里有语音识别结果，返回
+        - 否则返回 None
+    """
+    if not command_queue.empty():
+        return command_queue.get()
+    return None
