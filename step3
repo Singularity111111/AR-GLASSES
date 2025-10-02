@@ -1,0 +1,58 @@
+from collections import deque
+
+import cv2  # OpenCV库，用于处理摄像头和图像
+import numpy as np
+from PIL import Image,ImageDraw,ImageFont
+from pyexpat.errors import messages
+
+cap = cv2.VideoCapture(0)  # 0表示默认摄像头
+
+font=ImageFont.truetype('C:/Windows/Fonts/msyh.ttc', 28)
+messages=deque(maxlen=5)
+messages.append("系统启动完成")
+messages.append(("你好，AR眼镜！"))
+
+# -----------------------------
+# 2. 判断摄像头是否成功打开
+# -----------------------------
+if not cap.isOpened():
+    print("无法打开摄像头")
+    exit()  # 如果打不开就退出程序
+
+
+font_path = "arial.ttf"
+font_size = 24
+font = ImageFont.truetype(font_path, font_size)
+# -----------------------------
+# 3. 循环读取画面
+# -----------------------------
+while True:
+    ret, frame = cap.read()  # ret = True/False, frame = 图像数组
+
+    # 4. 判断读取是否成功
+    if not ret:
+        print("无法读取摄像头画面")
+        break  # 读取失败就退出循环
+    frame_pil = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+    draw = ImageDraw.Draw(frame_pil)
+    draw.text((10,10),"hello,AR",fill=(255,255,255),font=font)
+
+    frame=cv2.cvtColor(np.array(frame_pil),cv2.COLOR_RGB2BGR)
+
+
+    # 5. 显示画面
+    cv2.imshow("摄像头+HUD", frame)
+
+    # 6. 按退出键 q 停止
+    if cv2.waitKey(1) & 0xFF == ord('q'):  # waitKey返回按键编码
+        break  # 按 q 键退出循环
+
+# -----------------------------
+# 7. 释放摄像头资源
+# -----------------------------
+cap.release()  # 释放摄像头，告诉系统摄像头可以被其他程序使用
+
+# -----------------------------
+# 8. 关闭所有 OpenCV 窗口
+# -----------------------------
+cv2.destroyAllWindows()  # 关闭窗口
